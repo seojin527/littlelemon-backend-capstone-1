@@ -19,3 +19,8 @@ final/
 ├── templates/          # 공통 템플릿
 ├── static/             # 정적 파일(css, img)
 └── migrations/         # (루트 migrations 폴더)
+
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+
