@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<section>
+  <article>
+    <h1>Make a reservation</h1>
+    <div class="row">
+      <div class="column">
+          <form method="POST" id="form">
+            {% csrf_token %}
+            <p>
+              <label for="first_name">Name:</label>
+              <input type="text" placeholder="Your Name" maxlength="200" required="" id="first_name">
+            </p>
+            <p>
+              <label for="reservation_date">Reservation Date:</label>
+              <input type="date" id="reservation_date" required="">
+            </p>
+      
+            <p>
+              <label for="reservation_slot">Reservation time:</label>
+              <select id="reservation_slot">
+                <option value="0" disabled>Select time</option>
+              </select>
+            </p>
+            <button type="button" id="button">Reserve</button>
+          </form>
+      </div>
+
+      <div class="column">
+        <h2>Bookings For <span id="today"></span></h2>
+        <div id="bookings">
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<script>
+  // 페이지 로드 시 오늘 날짜 자동 선택
+  const date = new Date()
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  document.getElementById('reservation_date').value = `${year}-${month}-${day}`
+
+  getBookings()
+
+  /* Step 10: Part two - Event Listener */
+  document.getElementById('reservation_date').addEventListener('change', function() {
+      getBookings();
+  });
+
+  function getBookings() {
+    let reserved_slots = []
+    const date = document.getElementById('reservation_date').value
+    document.getElementById('today').innerHTML = date
+    
+    fetch("{% url 'bookings' %}" + '?date=' + date)
+      .then(r => r.json())
+      .then(data => {
+        reserved_slots = []
+        let bookings_str = ''
+        
+        /* Step 11: Part three - Process Data */
+        for (let item of data) {
+            console.log(item.fields);
+            reserved_slots.push(item.fields.reservation_slot);
+            bookings_str += `<p>${item.fields.first_name} - ${formatTime(item.fields.reservation_slot)}</p>`;
+        }
+
+        /* Step 12: Part four - Dynamic Slot Options */
+        let slot_options = '<option value="0" disabled>Select time</option>';
+        for (let i = 10; i < 20; i++) {
+            const label = formatTime(i);
+            if (reserved_slots.includes(i)) {
+                slot_options += `<option value=${i} disabled style="color: grey">${label} (Booked)</option>`;
+            } else {
+                slot_options += `<option value=${i}>${label}</option>`;
+            }
+        }
+        
+        document.getElementById('reservation_slot').innerHTML = slot_options
+        if(bookings_str == ''){
+          bookings_str = "No bookings"
+        }
+        document.getElementById('bookings').innerHTML = bookings_str
+      })
+  }
+
+  function formatTime(time) {
+    const ampm = time < 12 ? 'AM' : 'PM'
+    const t = time < 12 ? time : time > 12 ? time - 12 : time
+    const label = `${t} ${ampm}`
+    return label
+  }
+
+  document.getElementById('button').addEventListener('click', function (e) {
+    const formdata = {
+      first_name: document.getElementById('first_name').value,
+      reservation_date: document.getElementById('reservation_date').value,
+      reservation_slot: document.getElementById('reservation_slot').value,
+    }
+
+    fetch("{% url 'bookings' %}", {
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formdata)
+    })
+      .then(async (r) => {
+        if (!r.ok) {
+          const data = await r.json();
+          throw new Error(data.message || 'Reservation failed');
+        }
+        return r.text();
+      })
+      .then(() => {
+        getBookings()
+      })
+      .catch((err) => {
+        alert(err.message)
+      })
+  })
+</script>
+{% endblock %}
