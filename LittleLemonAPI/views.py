@@ -147,7 +147,7 @@ class SingleOrderView(generics.RetrieveUpdateDestroyAPIView):
                 order.status = request.data['status']
             order.save()
             return Response({"message":"Order updated by Manager"})
-        # 배달원은 상태값(배달완료)만 수정 능
+        # 배달원은 상태값(배달완료)만 수정 가능
         elif user.groups.filter(name='Delivery crew').exists():
             if 'status' in request.data:
                 order.status = request.data['status']
